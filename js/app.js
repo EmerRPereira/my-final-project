@@ -18,6 +18,12 @@ let searchHistory = [];
 let currentWordData = null; 
 let currentImages = [];      
 let selectedImageUrl = '';   
+let reviewSessionStats = {
+    totalReviewed: 0,
+    correctAnswers: 0,
+    wrongAnswers: 0,
+    sessionStart: null
+};
 
 // ============================================
 // CONSTANTS & CONFIGURATION
@@ -199,7 +205,7 @@ function speakWord(word) {
 }
 
 // ============================================
-// LOCAL STORAGE FUNCTIONS
+// LOCAL STORAGE FUNCTIONS (6 propriedades salvas)
 // ============================================
 
 function saveLibrary() {
@@ -229,6 +235,23 @@ function saveTheme(theme) {
 
 function loadTheme() {
     return localStorage.getItem('vocab_theme') || 'light';
+}
+
+function saveLastWord(word) {
+    localStorage.setItem('vocab_last_word', word);
+}
+
+function loadLastWord() {
+    return localStorage.getItem('vocab_last_word') || '';
+}
+
+function saveUserStats(stats) {
+    localStorage.setItem('vocab_user_stats', JSON.stringify(stats));
+}
+
+function loadUserStats() {
+    const saved = localStorage.getItem('vocab_user_stats');
+    return saved ? JSON.parse(saved) : { totalSessions: 0, totalReviews: 0 };
 }
 
 // ============================================
@@ -354,6 +377,11 @@ function updateProfileStats() {
         const totalReviews = library.reduce((sum, card) => sum + (card.reviewCount || 0), 0);
         reviewCount.textContent = totalReviews;
     }
+    
+    // Salvar estatísticas no localStorage
+    const userStats = loadUserStats();
+    userStats.totalReviews = library.reduce((sum, card) => sum + (card.reviewCount || 0), 0);
+    saveUserStats(userStats);
 }
 
 // ============================================
@@ -393,6 +421,7 @@ async function searchWord() {
         
         renderFlashcard(definition, images, selectedImage);
         addToSearchHistory(word);
+        saveLastWord(word);
         
     } catch (error) {
         console.error('Search error:', error);
@@ -475,6 +504,14 @@ function startReview() {
         return;
     }
     
+    // Iniciar sessão de review
+    reviewSessionStats = {
+        totalReviewed: library.length,
+        correctAnswers: 0,
+        wrongAnswers: 0,
+        sessionStart: new Date().toISOString()
+    };
+    
     reviewQueue = [...library];
     reviewIndex = 0;
     showNextReview();
@@ -482,6 +519,13 @@ function startReview() {
 
 function showNextReview() {
     if (reviewIndex >= reviewQueue.length) {
+        // Salvar estatísticas da sessão
+        const userStats = loadUserStats();
+        userStats.totalSessions = (userStats.totalSessions || 0) + 1;
+        userStats.lastSessionDate = new Date().toISOString();
+        userStats.lastSessionScore = reviewSessionStats.correctAnswers;
+        saveUserStats(userStats);
+        
         closeReviewModal();
         showToast(MESSAGES.reviewComplete, 'success');
         updateProfileStats();
@@ -503,8 +547,10 @@ function reviewAnswer(isCorrect) {
         const index = library.findIndex(item => item.id === card.id);
         if (index !== -1) library[index] = card;
         saveLibrary();
+        reviewSessionStats.correctAnswers++;
         showToast(MESSAGES.correct, 'success');
     } else {
+        reviewSessionStats.wrongAnswers++;
         showToast(MESSAGES.wrong, 'warning');
         reviewQueue.push(card);
     }
@@ -588,9 +634,30 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSearchHistory();
     applyTheme();
     
+    // Carregar última palavra pesquisada
+    const lastWord = loadLastWord();
+    if (lastWord) {
+        document.getElementById('searchInput').value = lastWord;
+    }
+    
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.placeholder = MESSAGES.searchPlaceholder;
+        
+        // Evento: focus no input
+        searchInput.addEventListener('focus', () => {
+            console.log('Search input focused');
+        });
+        
+        // Evento: blur no input
+        searchInput.addEventListener('blur', () => {
+            console.log('Search input blurred');
+        });
+        
+        // Evento: input change
+        searchInput.addEventListener('input', (e) => {
+            console.log(`Input changed: ${e.target.value}`);
+        });
     }
     
     const searchBtn = document.getElementById('searchBtn');
@@ -600,6 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reviewWrong = document.getElementById('reviewWrong');
     const reviewClose = document.getElementById('reviewClose');
     
+    // Eventos principais
     if (searchBtn) searchBtn.addEventListener('click', searchWord);
     if (searchInput) searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') searchWord();
@@ -610,8 +678,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reviewWrong) reviewWrong.addEventListener('click', () => reviewAnswer(false));
     if (reviewClose) reviewClose.addEventListener('click', closeReviewModal);
     
+    // Eventos de hover nos botões de navegação
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', () => navigateTo(item.dataset.section));
+        item.addEventListener('mouseenter', () => {
+            item.style.transform = 'translateY(-2px)';
+        });
+        item.addEventListener('mouseleave', () => {
+            item.style.transform = 'translateY(0)';
+        });
+    });
+    
+    // Evento de resize da janela
+    window.addEventListener('resize', () => {
+        console.log(`Window resized to: ${window.innerWidth}x${window.innerHeight}`);
     });
     
     window.speakWord = speakWord;
