@@ -31,9 +31,6 @@ let reviewSessionStats = {
 const DICTIONARY_API = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
 const PLACEHOLDER_IMAGE = 'https://placehold.co/600x400/4A90E2/white?text=No+Image+Available';
 
-// API de imagens que funciona sem CORS - Usando Lorem Picsum (sempre funciona)
-const IMAGE_API = 'https://picsum.photos/400/300';
-
 // ============================================
 // MESSAGES
 // ============================================
@@ -282,6 +279,7 @@ function addToSearchHistory(word) {
     updateSearchHistoryUI();
 }
 
+// FUNÇÃO RENDERFLASHCARD CORRIGIDA - Garante o layout correto
 function renderFlashcard(wordData, images, selectedImage) {
     currentWordData = wordData;
     currentImages = images || [];
@@ -289,13 +287,14 @@ function renderFlashcard(wordData, images, selectedImage) {
     
     const displayImages = currentImages.length > 0 ? currentImages : [PLACEHOLDER_IMAGE];
     
+    // Estrutura HTML correta para o flashcard (imagem à esquerda, conteúdo à direita)
     const flashcardHtml = `
         <img src="${selectedImageUrl}" alt="${wordData.word}" class="flashcard-image" onerror="this.src='${PLACEHOLDER_IMAGE}'">
         <div class="flashcard-content">
             <div class="word-section">
                 <h2 class="word">${escapeHtml(wordData.word)}</h2>
                 <div class="phonetic">${wordData.phonetic || ''}</div>
-                <button id="speakBtn" class="pronounce-btn" aria-label="Pronounce ${wordData.word}">
+                <button class="pronounce-btn" data-word="${escapeHtml(wordData.word)}" aria-label="Pronounce ${wordData.word}">
                     <i class="fas fa-volume-up"></i>
                 </button>
             </div>
@@ -307,16 +306,16 @@ function renderFlashcard(wordData, images, selectedImage) {
             </div>
             <div class="image-options">
                 ${displayImages.map((img, idx) => `
-                    <div class="image-option ${selectedImageUrl === img ? 'selected' : ''}" onclick="window.selectImage(${idx})" role="button" tabindex="0">
+                    <div class="image-option ${selectedImageUrl === img ? 'selected' : ''}" data-image-index="${idx}" role="button" tabindex="0">
                         <img src="${img}" alt="Image option ${idx + 1}" onerror="this.src='${PLACEHOLDER_IMAGE}'">
                     </div>
                 `).join('')}
             </div>
             <div class="flashcard-actions">
-                <button id="saveCardBtn" class="btn btn-primary" aria-label="Save word to library">
+                <button class="btn btn-primary save-card-btn" aria-label="Save word to library">
                     <i class="fas fa-save"></i> SAVE
                 </button>
-                <button id="newWordBtn" class="btn btn-secondary" aria-label="Clear and search new word">
+                <button class="btn btn-secondary new-word-btn" aria-label="Clear and search new word">
                     <i class="fas fa-plus"></i> NEW
                 </button>
             </div>
@@ -327,16 +326,35 @@ function renderFlashcard(wordData, images, selectedImage) {
     flashcardContainer.innerHTML = flashcardHtml;
     flashcardContainer.classList.add('active');
     
-    const speakBtn = document.getElementById('speakBtn');
-    const saveBtn = document.getElementById('saveCardBtn');
-    const newBtn = document.getElementById('newWordBtn');
+    // Garantir que o display seja flex (para desktop)
+    flashcardContainer.style.display = 'flex';
     
-    if (speakBtn) speakBtn.addEventListener('click', () => speakWord(wordData.word));
+    // Adicionar eventos após criar o DOM
+    const pronounceBtn = document.querySelector('#flashcard .pronounce-btn');
+    if (pronounceBtn) {
+        const word = pronounceBtn.getAttribute('data-word');
+        pronounceBtn.addEventListener('click', () => speakWord(word));
+    }
+    
+    const saveBtn = document.querySelector('#flashcard .save-card-btn');
     if (saveBtn) saveBtn.addEventListener('click', saveToLibrary);
+    
+    const newBtn = document.querySelector('#flashcard .new-word-btn');
     if (newBtn) newBtn.addEventListener('click', () => {
         document.getElementById('searchInput').value = '';
         document.getElementById('searchInput').focus();
         flashcardContainer.classList.remove('active');
+        flashcardContainer.style.display = 'none';
+    });
+    
+    // Adicionar eventos para as opções de imagem
+    document.querySelectorAll('#flashcard .image-option').forEach((option, idx) => {
+        option.addEventListener('click', () => {
+            if (currentImages && currentImages[idx]) {
+                selectedImageUrl = currentImages[idx];
+                renderFlashcard(currentWordData, currentImages, selectedImageUrl);
+            }
+        });
     });
 }
 
@@ -350,22 +368,48 @@ function renderLibrary() {
     }
     
     libraryGrid.innerHTML = library.map(card => `
-        <div class="library-card" onclick="window.viewWord('${escapeHtml(card.word)}')" role="button" tabindex="0">
+        <div class="library-card" data-word="${escapeHtml(card.word)}" role="button" tabindex="0">
             <img src="${card.imageUrl || PLACEHOLDER_IMAGE}" alt="${escapeHtml(card.word)}" onerror="this.src='${PLACEHOLDER_IMAGE}'">
             <div class="library-card-content">
                 <div class="library-word">${escapeHtml(card.word)}</div>
                 <div class="library-definition">${escapeHtml(card.definition.substring(0, 80))}...</div>
                 <div class="library-actions">
-                    <button onclick="event.stopPropagation(); window.removeFromLibrary('${card.id}')" aria-label="Remove ${card.word} from library">
+                    <button class="remove-btn" data-id="${card.id}" aria-label="Remove ${card.word} from library">
                         <i class="fas fa-trash"></i> Remove
                     </button>
-                    <button onclick="event.stopPropagation(); window.speakWord('${escapeHtml(card.word)}')" aria-label="Pronounce ${card.word}">
+                    <button class="listen-btn" data-word="${escapeHtml(card.word)}" aria-label="Pronounce ${card.word}">
                         <i class="fas fa-volume-up"></i> Listen
                     </button>
                 </div>
             </div>
         </div>
     `).join('');
+    
+    // Adicionar eventos aos cards da library
+    document.querySelectorAll('.library-card').forEach(card => {
+        const word = card.getAttribute('data-word');
+        card.addEventListener('click', (e) => {
+            // Evitar que o clique nos botões dispare o evento do card
+            if (e.target.closest('.remove-btn') || e.target.closest('.listen-btn')) return;
+            viewWord(word);
+        });
+    });
+    
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute('data-id');
+            removeFromLibrary(id);
+        });
+    });
+    
+    document.querySelectorAll('.listen-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const word = btn.getAttribute('data-word');
+            speakWord(word);
+        });
+    });
 }
 
 function updateProfileStats() {
@@ -388,13 +432,6 @@ function updateProfileStats() {
 // CORE APPLICATION FUNCTIONS
 // ============================================
 
-window.selectImage = function(index) {
-    if (currentImages && currentImages[index]) {
-        selectedImageUrl = currentImages[index];
-        renderFlashcard(currentWordData, currentImages, selectedImageUrl);
-    }
-};
-
 async function searchWord() {
     const searchInput = document.getElementById('searchInput');
     const word = searchInput?.value.trim().toLowerCase();
@@ -413,6 +450,7 @@ async function searchWord() {
             showToast(MESSAGES.wordNotFound, 'error');
             flashcardContainer.innerHTML = '';
             flashcardContainer.classList.remove('active');
+            flashcardContainer.style.display = 'none';
             return;
         }
         
@@ -428,6 +466,7 @@ async function searchWord() {
         showToast('Error searching word. Please try again.', 'error');
         flashcardContainer.innerHTML = '';
         flashcardContainer.classList.remove('active');
+        flashcardContainer.style.display = 'none';
     }
 }
 
@@ -462,19 +501,49 @@ function saveToLibrary() {
     showToast(MESSAGES.saveSuccess, 'success');
 }
 
-window.removeFromLibrary = function(id) {
+function removeFromLibrary(id) {
     library = library.filter(card => card.id !== id);
     saveLibrary();
     renderLibrary();
     updateProfileStats();
     showToast(MESSAGES.removeSuccess, 'success');
-};
+}
 
-window.viewWord = async function(word) {
+async function viewWord(word) {
+    // Limpar o campo de busca
     document.getElementById('searchInput').value = word;
+    
+    // Navegar para home
     navigateTo('home');
-    await searchWord();
-};
+    
+    // Garantir que o flashcard seja recriado corretamente
+    const flashcardContainer = document.getElementById('flashcard');
+    showLoading(flashcardContainer);
+    
+    try {
+        const definition = await fetchDefinition(word);
+        if (!definition) {
+            showToast(MESSAGES.wordNotFound, 'error');
+            flashcardContainer.innerHTML = '';
+            flashcardContainer.classList.remove('active');
+            flashcardContainer.style.display = 'none';
+            return;
+        }
+        
+        const images = await fetchImages(word);
+        const selectedImage = images.length > 0 ? images[0] : null;
+        
+        renderFlashcard(definition, images, selectedImage);
+        addToSearchHistory(word);
+        
+    } catch (error) {
+        console.error('View word error:', error);
+        showToast('Error loading word. Please try again.', 'error');
+        flashcardContainer.innerHTML = '';
+        flashcardContainer.classList.remove('active');
+        flashcardContainer.style.display = 'none';
+    }
+}
 
 window.searchHistoryWord = async function(word) {
     document.getElementById('searchInput').value = word;
@@ -582,7 +651,7 @@ function navigateTo(section) {
     
     if (flashcard) {
         if (section === 'home') {
-            flashcard.style.display = 'block';
+            flashcard.style.display = 'flex';
         } else {
             flashcard.style.display = 'none';
         }
@@ -644,17 +713,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchInput) {
         searchInput.placeholder = MESSAGES.searchPlaceholder;
         
-        // Evento: focus no input
         searchInput.addEventListener('focus', () => {
             console.log('Search input focused');
         });
         
-        // Evento: blur no input
         searchInput.addEventListener('blur', () => {
             console.log('Search input blurred');
         });
         
-        // Evento: input change
         searchInput.addEventListener('input', (e) => {
             console.log(`Input changed: ${e.target.value}`);
         });
@@ -694,9 +760,13 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`Window resized to: ${window.innerWidth}x${window.innerHeight}`);
     });
     
+    // Expor funções globalmente
     window.speakWord = speakWord;
     window.searchWord = searchWord;
     window.navigateTo = navigateTo;
+    window.viewWord = viewWord;
+    window.removeFromLibrary = removeFromLibrary;
+    window.searchHistoryWord = searchHistoryWord;
     
     console.log('✅ Application ready! Search for a word to begin.');
 });
