@@ -193,6 +193,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    justify-content: center;
 }
 
 .history-item {
@@ -212,7 +213,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ============================================
-   FLASHCARD COMPONENT - Versão Corrigida
+   FLASHCARD COMPONENT - TOTALMENTE CENTRALIZADO
    ============================================ */
 .flashcard {
     background: var(--card-light);
@@ -249,8 +250,10 @@ h1, h2, h3, h4, h5, h6 {
     margin: 0 auto;
 }
 
+/* CONTEÚDO DO FLASHCARD TOTALMENTE CENTRALIZADO */
 .flashcard-content {
     padding: 2rem;
+    text-align: center;
 }
 
 .word-section {
@@ -293,7 +296,7 @@ h1, h2, h3, h4, h5, h6 {
     transform: scale(1.1);
 }
 
-/* Definition Section */
+/* Definition Section - Centralizado */
 .definition-section {
     text-align: center;
     margin: 1.5rem 0;
@@ -302,9 +305,11 @@ h1, h2, h3, h4, h5, h6 {
 .definition-text {
     font-size: 1.1rem;
     line-height: 1.6;
+    max-width: 90%;
+    margin: 0 auto;
 }
 
-/* Example Section */
+/* Example Section - Centralizado */
 .example-section {
     background: rgba(74, 144, 226, 0.1);
     padding: 1.5rem;
@@ -313,9 +318,13 @@ h1, h2, h3, h4, h5, h6 {
     font-style: italic;
     margin: 1.5rem 0;
     border-left: 4px solid var(--primary);
+    border-right: 4px solid var(--primary);
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-/* Image Options Gallery */
+/* Image Options Gallery - Centralizado */
 .image-options {
     display: flex;
     gap: 1rem;
@@ -348,7 +357,7 @@ h1, h2, h3, h4, h5, h6 {
     object-fit: cover;
 }
 
-/* Flashcard Action Buttons */
+/* Flashcard Action Buttons - Centralizado */
 .flashcard-actions {
     display: flex;
     gap: 1rem;
@@ -449,6 +458,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .library-card-content {
     padding: 1rem;
+    text-align: center;
 }
 
 .library-word {
@@ -469,6 +479,7 @@ h1, h2, h3, h4, h5, h6 {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    justify-content: center;
 }
 
 .library-actions button {
@@ -500,6 +511,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 16px;
     padding: 2rem;
     margin-top: 1rem;
+    text-align: center;
 }
 
 .stat-number {
@@ -653,14 +665,16 @@ footer {
 }
 
 /* ============================================
-   RESPONSIVE DESIGN - CORRIGIDO
+   RESPONSIVE DESIGN - TOTALMENTE CENTRALIZADO
    Mobile First (até 480px)
    ============================================ */
 
 /* Base: Mobile Small (até 480px) - padrão */
 .word { font-size: 1.5rem; }
 .flashcard-image { min-height: 200px; max-height: 250px; }
-.flashcard-content { padding: 1rem; }
+.flashcard-content { padding: 1rem; text-align: center; }
+.definition-text { max-width: 100%; }
+.example-section { max-width: 100%; margin-left: auto; margin-right: auto; }
 .btn { padding: 0.6rem 1.2rem; font-size: 0.85rem; }
 .image-option { width: 60px; height: 60px; }
 .library-grid { grid-template-columns: 1fr; }
@@ -671,12 +685,15 @@ footer {
 .review-buttons { flex-direction: column; }
 .header-content { flex-direction: column; text-align: center; }
 .logo h1 { font-size: 1.2rem; }
+.search-history { justify-content: center; }
 
 /* Tablet (481px - 768px) */
 @media (min-width: 481px) {
     .word { font-size: 1.8rem; }
     .flashcard-image { min-height: 250px; max-height: 300px; }
-    .flashcard-content { padding: 1.5rem; }
+    .flashcard-content { padding: 1.5rem; text-align: center; }
+    .definition-text { max-width: 95%; }
+    .example-section { max-width: 95%; }
     .image-option { width: 70px; height: 70px; }
     .library-grid { grid-template-columns: repeat(2, 1fr); }
     .search-box { flex-direction: row; }
@@ -689,7 +706,9 @@ footer {
 @media (min-width: 769px) {
     .word { font-size: 2rem; }
     .flashcard-image { min-height: 300px; max-height: 350px; }
-    .flashcard-content { padding: 2rem; }
+    .flashcard-content { padding: 2rem; text-align: center; }
+    .definition-text { max-width: 85%; }
+    .example-section { max-width: 85%; }
     .image-option { width: 80px; height: 80px; }
     .library-grid { grid-template-columns: repeat(3, 1fr); }
     .logo h1 { font-size: 1.4rem; }
@@ -715,7 +734,10 @@ footer {
         display: flex;
         flex-direction: column;
         justify-content: center;
+        text-align: center;
     }
+    .definition-text { max-width: 90%; margin: 0 auto; }
+    .example-section { max-width: 90%; margin-left: auto; margin-right: auto; }
     .word { font-size: 2.5rem; }
     .library-grid { grid-template-columns: repeat(4, 1fr); }
     .logo h1 { font-size: 1.5rem; }
@@ -726,5 +748,7 @@ footer {
     .container { max-width: 1400px; }
     .flashcard-image { min-height: 550px; max-height: 600px; }
     .word { font-size: 3rem; }
+    .definition-text { max-width: 80%; }
+    .example-section { max-width: 80%; }
     .library-grid { grid-template-columns: repeat(5, 1fr); }
 }
