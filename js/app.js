@@ -574,7 +574,7 @@ function startReview() {
     }
     
     // Iniciar sessão de review
-    reviewSessionStats = {
+        reviewSessionStats = {
         totalReviewed: library.length,
         correctAnswers: 0,
         wrongAnswers: 0,
